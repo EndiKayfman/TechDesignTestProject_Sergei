@@ -22,7 +22,6 @@ public class ClickableObject : MonoBehaviour
 
     private void Awake()
     {
-        // Инициализация компонентов
         if (animator == null)
             animator = GetComponent<Animator>();
             
@@ -34,8 +33,7 @@ public class ClickableObject : MonoBehaviour
             audioSource = gameObject.AddComponent<AudioSource>();
             audioSource.playOnAwake = false;
         }
-
-        // Проверяем наличие Particle System
+        
         if (clickParticles == null)
             clickParticles = GetComponent<ParticleSystem>();
     }
@@ -47,7 +45,6 @@ public class ClickableObject : MonoBehaviour
 
     private void TryPlayEffects()
     {
-        // Если есть аниматор - играем анимацию
         if (animator != null)
         {
             if (isAnimating || Time.time < lastAnimationTime + animationCooldown)
@@ -55,12 +52,10 @@ public class ClickableObject : MonoBehaviour
 
             StartAnimationAndSound();
         }
-        // Если нет аниматора, но есть Particle System
         else if (clickParticles != null)
         {
             ToggleParticles();
         }
-        // Если нет ни аниматора, ни Particle System - просто звук
         else
         {
             PlaySound();
@@ -86,12 +81,12 @@ public class ClickableObject : MonoBehaviour
         if (particlesPlaying)
         {
             clickParticles.Stop();
-            PlaySound(); // Звук при остановке
+            PlaySound();
         }
         else
         {
             clickParticles.Play();
-            PlaySound(); // Звук при запуске
+            PlaySound();
         }
 
         particlesPlaying = !particlesPlaying;

@@ -4,103 +4,99 @@ using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance { get; private set; }
-
-    [Header("UI References")]
+   [Header("UI References")]
     [SerializeField] private Slider musicSlider;
-    [SerializeField] private Toggle sfxToggle; // Теперь: ON=выкл, OFF=вкл
-
+    [SerializeField] private Toggle sfxToggle;
+    
     [Header("Scene Management")]
     [SerializeField] private GameObject mainMenuPanel;
     [SerializeField] private GameObject levelSelectPanel;
     [SerializeField] private GameObject settingsPanel;
+    [SerializeField] private Animator uiAnimator;
 
     private const string MUSIC_VOLUME_KEY = "MusicVolume";
     private const string SFX_ENABLED_KEY = "SFXEnabled";
 
-    private void Awake()
+    private void Start()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            Initialize();
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        InitializeSettings();
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
-    private void Initialize()
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // 1. Настройка музыки
-        musicSlider.value = PlayerPrefs.GetFloat(MUSIC_VOLUME_KEY, 0.75f);
-        musicSlider.onValueChanged.AddListener(OnMusicVolumeChanged);
+        InitializeSettings();
+    }
 
-        // 2. Настройка SFX (инвертированная логика)
-        bool sfxEnabled = PlayerPrefs.HasKey(SFX_ENABLED_KEY) 
-            ? PlayerPrefs.GetInt(SFX_ENABLED_KEY) == 1 
-            : true; // По умолчанию звук ВКЛЮЧЕН
+    private void InitializeSettings()
+    {
+        float savedVolume = PlayerPrefs.GetFloat(MUSIC_VOLUME_KEY, 0.75f);
+        musicSlider.value = savedVolume;
+        musicSlider.onValueChanged.AddListener(OnMusicVolumeChanged);
         
-        // Инвертируем для Toggle: enabled=false → IsOn=false
+        bool sfxEnabled = PlayerPrefs.GetInt(SFX_ENABLED_KEY, 1) == 1 && savedVolume > 0;
         sfxToggle.SetIsOnWithoutNotify(!sfxEnabled);
         sfxToggle.onValueChanged.AddListener(OnSFXToggleChanged);
-
-        // 3. Применяем настройки
-        ApplyAudioSettings(musicSlider.value, sfxEnabled);
+        
+        ApplyAudioSettings(savedVolume, sfxEnabled);
     }
 
     private void ApplyAudioSettings(float musicVolume, bool sfxEnabled)
     {
-        // Музыка
-        if (MusicPlayer.Instance != null)
+        bool soundEnabled = sfxEnabled && musicVolume > 0;
+        AudioListener.volume = soundEnabled ? 1 : 0;
+        
+        MusicPlayer musicPlayer = FindObjectOfType<MusicPlayer>();
+        if (musicPlayer != null)
         {
-            MusicPlayer.Instance.SetMusicVolume(musicVolume);
+            musicPlayer.SetMusicVolume(soundEnabled ? musicVolume : 0);
         }
-
-        // SFX (инвертированная логика)
-        AudioListener.volume = sfxEnabled ? 1 : 0;
     }
 
     public void OnMusicVolumeChanged(float value)
     {
-        float volume = Mathf.Clamp(value, 0.001f, 1f);
+        float volume = Mathf.Clamp(value, 0f, 1f);
         PlayerPrefs.SetFloat(MUSIC_VOLUME_KEY, volume);
         
-        if (MusicPlayer.Instance != null)
+        if (Mathf.Approximately(volume, 0f))
         {
-            MusicPlayer.Instance.SetMusicVolume(volume);
+            sfxToggle.SetIsOnWithoutNotify(true);
+            PlayerPrefs.SetInt(SFX_ENABLED_KEY, 0);
         }
+        
+        ApplyAudioSettings(volume, PlayerPrefs.GetInt(SFX_ENABLED_KEY, 1) == 1);
     }
 
     public void OnSFXToggleChanged(bool isOn)
     {
-        // isOn=true → звук ВЫКЛЮЧЕН
         bool sfxEnabled = !isOn;
         PlayerPrefs.SetInt(SFX_ENABLED_KEY, sfxEnabled ? 1 : 0);
-        AudioListener.volume = sfxEnabled ? 1 : 0;
+        ApplyAudioSettings(PlayerPrefs.GetFloat(MUSIC_VOLUME_KEY, 0.75f), sfxEnabled);
     }
 
     public void ShowMainMenu()
     {
-        mainMenuPanel.SetActive(true);
-        levelSelectPanel.SetActive(false);
-        settingsPanel.SetActive(false);
+        uiAnimator.SetBool("isSettingsOpened", false);
+        uiAnimator.SetBool("isLevelChooseOpened", false);
+        // mainMenuPanel.SetActive(true);
+        // levelSelectPanel.SetActive(false);
+        // settingsPanel.SetActive(false);
     }
 
     public void ShowLevelSelect()
     {
-        mainMenuPanel.SetActive(false);
-        levelSelectPanel.SetActive(true);
-        settingsPanel.SetActive(false);
+        uiAnimator.SetBool("isLevelChooseOpened", true);
+        // mainMenuPanel.SetActive(false);
+        // levelSelectPanel.SetActive(true);
+        // settingsPanel.SetActive(false);
     }
 
     public void ShowSettings()
     {
-        mainMenuPanel.SetActive(false);
-        levelSelectPanel.SetActive(false);
-        settingsPanel.SetActive(true);
+        uiAnimator.SetBool("isSettingsOpened", true);
+        // mainMenuPanel.SetActive(false);
+        // levelSelectPanel.SetActive(false);
+        // settingsPanel.SetActive(true);
     }
 
     public void LoadLevel(int levelIndex)

@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.U2D.Animation; // Добавляем пространство имен для костной анимации
+using UnityEngine.U2D.Animation;
 
 public class BoneAnimatedPlayerController : MonoBehaviour
 {
@@ -8,7 +8,7 @@ public class BoneAnimatedPlayerController : MonoBehaviour
     [SerializeField] [Range(0.8f, 0.95f)] private float screenBorder = 0.9f;
 
     [Header("Animation")]
-    [SerializeField] private SpriteResolver spriteResolver; // Для управления анимациями
+    [SerializeField] private SpriteResolver spriteResolver;
     [SerializeField] private string runAnimationLabel = "Run";
     [SerializeField] private string idleAnimationLabel = "Idle";
     
@@ -72,7 +72,6 @@ public class BoneAnimatedPlayerController : MonoBehaviour
     {
         bool isMoving = Mathf.Abs(Input.GetAxis("Horizontal")) > 0.1f;
         
-        // Переключаем анимации через SpriteResolver
         if (spriteResolver != null)
         {
             spriteResolver.SetCategoryAndLabel("CharacterState", 
